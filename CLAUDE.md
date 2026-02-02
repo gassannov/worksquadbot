@@ -3,3 +3,7 @@
 - Use " everywhere as possible insted of '
 - Write CLEAR, SHORT and CONCISE docstrings
 - Write DOCSTRINGS to EVERY FILE AND FUNCTIONS AND CLASS
+- All strings store in separate file
+- Use .env
+- Use docker-compose
+- DO NOT CONTAIN WHITESPACES on BLANK LINE
