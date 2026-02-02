@@ -4,6 +4,10 @@ import os
 from PIL import Image
 from typing import List, Tuple
 
+from src.config.logger import get_logger
+
+logger = get_logger()
+
 
 class ImageProcessor:
     """Handles image cropping and emoji preparation."""
@@ -16,6 +20,7 @@ class ImageProcessor:
             emoji_size: Target size for each emoji in pixels
         """
         self.emoji_size = emoji_size
+        logger.info(f"ImageProcessor initialized with emoji_size={emoji_size}")
 
     def crop_to_grid(
         self,
@@ -36,20 +41,28 @@ class ImageProcessor:
         Returns:
             List of paths to cropped images
         """
-        os.makedirs(output_folder, exist_ok=True)
+        logger.info(f"Starting crop_to_grid: input={input_path}, grid_size={grid_size}, padding={padding}")
 
+        os.makedirs(output_folder, exist_ok=True)
+        logger.debug(f"Created output folder: {output_folder}")
+
+        logger.info(f"Opening image: {input_path}")
         img = Image.open(input_path)
 
         if img.mode != "RGBA":
+            logger.debug(f"Converting image from {img.mode} to RGBA")
             img = img.convert("RGBA")
 
         cols, rows = grid_size
         img_width, img_height = img.size
+        logger.info(f"Image size: {img_width}x{img_height}, Grid: {cols}x{rows} ({cols*rows} total emojis)")
 
         cell_width = img_width // cols
         cell_height = img_height // rows
+        logger.debug(f"Cell dimensions: {cell_width}x{cell_height}")
 
         padding_pixels = padding * 2
+        logger.debug(f"Padding pixels: {padding_pixels}")
 
         cropped_files = []
 
@@ -78,6 +91,7 @@ class ImageProcessor:
                 cropped_resized.save(output_path, "PNG", optimize=True)
                 cropped_files.append(output_path)
 
+        logger.info(f"Successfully cropped {len(cropped_files)} emoji files")
         img.close()
         return cropped_files
 
@@ -92,7 +106,9 @@ class ImageProcessor:
         Returns:
             List of suggested grid sizes
         """
+        logger.info(f"Calculating grid suggestions for {width}x{height}")
         aspect_ratio = width / height
+        logger.debug(f"Aspect ratio: {aspect_ratio:.2f}")
 
         target_counts = [21, 36, 56, 72]
 
@@ -119,7 +135,9 @@ class ImageProcessor:
                 seen.add(size)
                 unique_sizes.append(size)
 
-        return unique_sizes[:5]
+        result = unique_sizes[:5]
+        logger.info(f"Suggested grid sizes: {result}")
+        return result
 
     def get_image_dimensions(self, path: str) -> Tuple[int, int]:
         """
@@ -131,5 +149,8 @@ class ImageProcessor:
         Returns:
             Tuple of (width, height)
         """
+        logger.debug(f"Getting dimensions for: {path}")
         with Image.open(path) as img:
-            return img.size
+            dimensions = img.size
+            logger.info(f"Image dimensions: {dimensions[0]}x{dimensions[1]}")
+            return dimensions

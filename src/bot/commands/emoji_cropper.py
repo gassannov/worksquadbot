@@ -6,9 +6,12 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from src.config import strings, settings
+from src.config.logger import get_logger
 from src.bot.keyboards import KeyboardBuilder
 from src.emoji.processor import ImageProcessor
 from src.emoji.sticker import StickerPackCreator
+
+logger = get_logger()
 
 
 class EmojiCropperCommand:
@@ -16,8 +19,10 @@ class EmojiCropperCommand:
 
     def __init__(self):
         """Initialize emoji cropper command handler."""
+        logger.info("Initializing EmojiCropperCommand")
         self.processor = ImageProcessor(settings.EMOJI_SIZE)
         self.keyboard_builder = KeyboardBuilder()
+        logger.info(f"EmojiCropperCommand initialized with emoji size: {settings.EMOJI_SIZE}")
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
@@ -27,14 +32,19 @@ class EmojiCropperCommand:
             update: Telegram update object
             context: Context for the handler
         """
+        user_id = update.effective_user.id if update.effective_user else "Unknown"
+        logger.info(f"User {user_id} started emoji cropper flow")
+
         reply_markup = self.keyboard_builder.build_back_to_menu()
 
         if update.message:
+            logger.debug(f"User {user_id} started via message")
             await update.message.reply_text(
                 strings.EMOJI_CROPPER_START,
                 reply_markup=reply_markup
             )
         elif update.callback_query:
+            logger.debug(f"User {user_id} started via callback")
             await update.callback_query.edit_message_text(
                 strings.EMOJI_CROPPER_START,
                 reply_markup=reply_markup
@@ -48,21 +58,34 @@ class EmojiCropperCommand:
             update: Telegram update object
             context: Context for the handler
         """
+        user_id = update.effective_user.id
+        logger.info(f"User {user_id} uploading photo for processing")
+
         photo = update.message.photo[-1]
+        logger.debug(f"User {user_id} photo file_id: {photo.file_id}, size: {photo.file_size} bytes")
+
+        logger.info(f"User {user_id} downloading photo from Telegram")
         file = await photo.get_file()
 
-        user_id = update.effective_user.id
         temp_dir = f"{settings.TEMP_DIR_PREFIX}{user_id}"
         os.makedirs(temp_dir, exist_ok=True)
+        logger.debug(f"User {user_id} created temp directory: {temp_dir}")
 
         image_path = os.path.join(temp_dir, "input.jpg")
+        logger.info(f"User {user_id} saving photo to: {image_path}")
         await file.download_to_drive(image_path)
+        logger.info(f"User {user_id} photo downloaded successfully")
 
         context.user_data["image_path"] = image_path
         context.user_data["temp_dir"] = temp_dir
 
+        logger.info(f"User {user_id} getting image dimensions")
         width, height = self.processor.get_image_dimensions(image_path)
+        logger.info(f"User {user_id} image dimensions: {width}x{height}")
+
+        logger.info(f"User {user_id} calculating suggested grid sizes")
         suggested_grids = self.processor.suggest_grid_sizes(width, height)
+        logger.info(f"User {user_id} suggested grids: {suggested_grids}")
 
         reply_markup = self.keyboard_builder.build_grid_selection(suggested_grids)
 
@@ -70,6 +93,7 @@ class EmojiCropperCommand:
             strings.ASK_GRID_SIZE.format(width=width, height=height),
             reply_markup=reply_markup
         )
+        logger.info(f"User {user_id} presented with grid selection options")
 
     async def handle_grid_selection(
         self,
@@ -83,11 +107,14 @@ class EmojiCropperCommand:
             update: Telegram update object
             context: Context for the handler
         """
+        user_id = update.effective_user.id if update.effective_user else "Unknown"
+
         query = update.callback_query
         await query.answer()
 
         grid_data = query.data.replace("grid_", "")
         cols, rows = map(int, grid_data.split("x"))
+        logger.info(f"User {user_id} selected grid size: {cols}x{rows}")
 
         context.user_data["grid_size"] = (cols, rows)
 
@@ -97,6 +124,7 @@ class EmojiCropperCommand:
             strings.ASK_PADDING,
             reply_markup=reply_markup
         )
+        logger.info(f"User {user_id} presented with padding selection options")
 
     async def handle_padding_selection(
         self,
@@ -110,38 +138,48 @@ class EmojiCropperCommand:
             update: Telegram update object
             context: Context for the handler
         """
+        user_id = update.effective_user.id
+
         query = update.callback_query
         await query.answer()
 
         padding = int(query.data.replace("padding_", ""))
+        logger.info(f"User {user_id} selected padding: {padding}")
 
         await query.edit_message_text(strings.PROCESSING)
+        logger.info(f"User {user_id} starting image processing")
 
         image_path = context.user_data.get("image_path")
         temp_dir = context.user_data.get("temp_dir")
         grid_size = context.user_data.get("grid_size")
-        user_id = update.effective_user.id
 
         if not image_path or not grid_size:
+            logger.error(f"User {user_id} missing required data - image_path: {bool(image_path)}, grid_size: {bool(grid_size)}")
             await query.edit_message_text(strings.ERROR_PROCESSING)
             return
 
+        logger.info(f"User {user_id} processing with grid_size={grid_size}, padding={padding}")
+
         try:
             output_dir = os.path.join(temp_dir, "emojis")
+            logger.info(f"User {user_id} cropping image to grid")
             cropped_files = self.processor.crop_to_grid(
                 image_path,
                 output_dir,
                 grid_size,
                 padding
             )
+            logger.info(f"User {user_id} created {len(cropped_files)} emoji files")
 
             await query.edit_message_text(strings.CREATING_PACK)
+            logger.info(f"User {user_id} creating sticker pack")
 
             sticker_creator = StickerPackCreator(context.bot)
             emoji_link = await sticker_creator.create_emoji_pack(
                 user_id=user_id,
                 emoji_files=cropped_files
             )
+            logger.info(f"User {user_id} sticker pack created successfully: {emoji_link}")
 
             reply_markup = self.keyboard_builder.build_back_to_menu()
 
@@ -150,10 +188,12 @@ class EmojiCropperCommand:
                 reply_markup=reply_markup
             )
 
+            logger.info(f"User {user_id} cleaning up temp directory: {temp_dir}")
             shutil.rmtree(temp_dir, ignore_errors=True)
+            logger.info(f"User {user_id} temp directory cleaned up successfully")
 
         except Exception as e:
-            print(f"Error: {e}")
+            logger.error(f"User {user_id} error during processing: {e}", exc_info=True)
             reply_markup = self.keyboard_builder.build_back_to_menu()
 
             await query.edit_message_text(
@@ -162,4 +202,5 @@ class EmojiCropperCommand:
             )
 
             if temp_dir and os.path.exists(temp_dir):
+                logger.info(f"User {user_id} cleaning up temp directory after error: {temp_dir}")
                 shutil.rmtree(temp_dir, ignore_errors=True)
