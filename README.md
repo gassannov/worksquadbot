@@ -50,12 +50,21 @@ docker-compose up -d
 Run locally without Docker:
 ```bash
 pip install -r requirements.txt
-python bot.py
+python main.py
 ```
 
 ### Project Structure
 
-- `bot.py` - Main bot logic and handlers
-- `image_processor.py` - Image cropping and processing
-- `strings.py` - All bot messages and text
-- `main.py` - Legacy emoji pack creator (kept for reference)
+```
+src/
+├── bot/
+│   ├── handlers.py    # Bot command and callback handlers
+│   └── keyboards.py   # Inline keyboard builders
+├── emoji/
+│   ├── processor.py   # Image cropping and processing
+│   └── sticker.py     # Sticker pack creation
+└── config/
+    ├── settings.py    # Application configuration
+    └── strings.py     # Bot messages and text
+main.py               # Entry point
+```
