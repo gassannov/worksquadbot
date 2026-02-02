@@ -1,0 +1,15 @@
+.env
+temp/
+temp_*/
+source_images/
+processed_emojis/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
