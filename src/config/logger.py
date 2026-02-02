@@ -21,7 +21,9 @@ def setup_logger(name: str = "worksquadbot", level: int = logging.INFO) -> loggi
     logger.setLevel(level)
 
     if logger.handlers:
-        return logger
+        logger.handlers.clear()
+
+    logger.propagate = False
 
     log_format = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
