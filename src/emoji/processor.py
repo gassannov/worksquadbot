@@ -94,12 +94,32 @@ class ImageProcessor:
         """
         aspect_ratio = width / height
 
-        if aspect_ratio > 1.3:
-            return [(4, 3), (3, 2), (4, 4), (3, 3)]
-        elif aspect_ratio < 0.7:
-            return [(3, 4), (2, 3), (3, 3), (4, 4)]
-        else:
-            return [(3, 3), (4, 4), (2, 2), (5, 5)]
+        target_counts = [21, 36, 56, 72]
+
+        grid_sizes = []
+
+        for target_count in target_counts:
+            rows = round((target_count / aspect_ratio) ** 0.5)
+            rows = max(2, rows)
+
+            cols = round(target_count / rows)
+            cols = max(2, cols)
+
+            grid_aspect = cols / rows
+            if abs(grid_aspect - aspect_ratio) > 0.4:
+                cols = round(aspect_ratio * rows)
+                cols = max(2, cols)
+
+            grid_sizes.append((cols, rows))
+
+        seen = set()
+        unique_sizes = []
+        for size in grid_sizes:
+            if size not in seen:
+                seen.add(size)
+                unique_sizes.append(size)
+
+        return unique_sizes[:5]
 
     def get_image_dimensions(self, path: str) -> Tuple[int, int]:
         """
