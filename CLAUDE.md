@@ -1,0 +1,5 @@
+- DO NOT make UNNECESSARY commnets. make as little as possible comments
+- Write understandable and esy to use code
+- Use " everywhere as possible insted of '
+- Write CLEAR, SHORT and CONCISE docstrings
+- Write DOCSTRINGS to EVERY FILE AND FUNCTIONS AND CLASS
