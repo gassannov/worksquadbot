@@ -3,11 +3,11 @@
 import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
-from src.config.settings import settings
+from src.config import settings
 from src.bot.handlers import BotHandlers
 
 
-async def main():
+def main():
     """Start the bot."""
     settings.validate()
 
@@ -29,8 +29,8 @@ async def main():
         CallbackQueryHandler(handlers.handle_padding_selection, pattern="^padding_")
     )
 
-    await application.run_polling()
+    application.run_polling()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

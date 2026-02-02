@@ -7,3 +7,4 @@
 - Use .env
 - Use docker-compose
 - DO NOT CONTAIN WHITESPACES on BLANK LINE
+- Log as much as possible
