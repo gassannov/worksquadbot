@@ -17,7 +17,11 @@ async def main():
 
     application.add_handler(CommandHandler("start", handlers.start))
     application.add_handler(CommandHandler("help", handlers.help_command))
+    application.add_handler(CommandHandler("emoji_cropper", handlers.emoji_cropper))
     application.add_handler(MessageHandler(filters.PHOTO, handlers.handle_photo))
+    application.add_handler(
+        CallbackQueryHandler(handlers.handle_command_callback, pattern="^cmd_")
+    )
     application.add_handler(
         CallbackQueryHandler(handlers.handle_grid_selection, pattern="^grid_")
     )
